@@ -13,6 +13,7 @@ const websockets_1 = require("@nestjs/websockets");
 const common_1 = require("@nestjs/common");
 const ws_auth_guard_1 = require("../auth/ws-auth.guard");
 const jwt_1 = require("@nestjs/jwt");
+const user_type_1 = require("../user/user.type");
 let ChatGateway = class ChatGateway {
     constructor(jwtService) {
         this.jwtService = jwtService;
@@ -45,6 +46,12 @@ let ChatGateway = class ChatGateway {
         this.logger.log(Array.from(this.onlineUsers));
         this.wss.emit('users/online', Array.from(this.onlineUsers));
     }
+    handleIsWriting(sender, user) {
+        sender.broadcast.emit('isWriting', user);
+    }
+    handleIsNotWriting(sender) {
+        sender.broadcast.emit('isNotWriting');
+    }
     getUser(socket) {
         const token = socket.handshake.query.token;
         const user = this.jwtService.decode(token);
@@ -67,6 +74,18 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", String)
 ], ChatGateway.prototype, "handleMessage", null);
+__decorate([
+    websockets_1.SubscribeMessage('isWriting'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, user_type_1.User]),
+    __metadata("design:returntype", void 0)
+], ChatGateway.prototype, "handleIsWriting", null);
+__decorate([
+    websockets_1.SubscribeMessage('isNotWriting'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], ChatGateway.prototype, "handleIsNotWriting", null);
 ChatGateway = __decorate([
     websockets_1.WebSocketGateway({ namespace: 'chat' }),
     __metadata("design:paramtypes", [jwt_1.JwtService])

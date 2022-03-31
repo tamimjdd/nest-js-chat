@@ -9,6 +9,7 @@ import { UseGuards, Logger } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/ws-auth.guard';
 import { Socket, Client, Server } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../user/user.type';
 
 @WebSocketGateway({ namespace: 'chat' })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -51,6 +52,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(Array.from(this.onlineUsers));
     this.wss.emit('users/online', Array.from(this.onlineUsers));
   }
+
+  @SubscribeMessage('isWriting')
+    handleIsWriting (sender, user:User) {
+        sender.broadcast.emit('isWriting', user);
+    }
+
+    @SubscribeMessage('isNotWriting')
+    handleIsNotWriting (sender) {
+        sender.broadcast.emit('isNotWriting');
+    }
 
   private getUser(socket: Socket) {
     const token = socket.handshake.query.token;

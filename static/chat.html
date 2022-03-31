@@ -8,6 +8,8 @@
     <script src="./scripts/vue.js"></script>
     <script type="text/javascript" src="./scripts/socket.io.js"></script>
     <title>Opensource REST API | apimocket</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
 </head>
 
 <link rel="stylesheet" href="./styles.css">
@@ -125,18 +127,29 @@
                     <ul v-if="activeChat">
                         <li v-for="m in getMessages" :key="m.id">
                             <div class="message" :class="m.senderId===activeChat.id?'left':'right'">
-                                {{m.content}}</div>
+                                {{m.content}}
+                            </div>
+                            <div style="position: absolute;bottom:0;">
+                                <p id="typing">{{writing}}</p>
+                            </div>
                         </li>
                     </ul>
                 </div>
                 <div class="message-box">
-                    <textarea v-model="message_content"></textarea>
+                    <textarea 
+                    v-model="message_content"
+                    @keydown="isWriting()"
+                    @keyup="isNotWriting()"
+                    >
+                    </textarea>
                     <button @click.prevent="sendMessage()" class="send-btn">send</button>
                 </div>
             </div>
         </div>
     </div>
     <script>
+        
+
         var app = new Vue({
             el: '#v-app',
             data: {
@@ -151,19 +164,36 @@
                 message_content: '',
                 socket: null,
                 onlineUsers: [],
+                timeout: undefined,
+                timer: null,
+                writing: '',
 
             },
             computed: {
                 getMessages() {
                     if (this.activeChat) {
+
                         if (!this.messages[this.activeChat.id]) return [];
                         return this.messages[this.activeChat.id];
                     }
                     return [];
-                }
+                },
+                
 
             },
             methods: {
+                isWriting () {
+                    // this.messageService.isWriting(this.actualUser);
+                    this.socket.emit('isWriting', {id: this.activeChat.id, name: this.activeChat.username});
+                    if (this.timer) {
+                        clearTimeout(this.timer);
+                    }
+                },
+                isNotWriting (){
+                    this.timer = setTimeout(() => {
+                        this.socket.emit('isNotWriting');
+                    }, 2000);
+                },
                 isOnline(id) {
                     return this.onlineUsers.indexOf(id) !== -1;
                 },
@@ -337,6 +367,8 @@
                 }
             },
             mounted() {
+            
+
                 console.log('component mounted')
                 this.userData = JSON.parse(localStorage.getItem('userData'));
                 this.socket = io('http://localhost:3000/chat', {
@@ -347,12 +379,20 @@
                 });
                 this.loadUsers();
                 this.socket.on('message', (msg) => {
+                    console.log("message sent");
                     this.receiveMessage(msg)
                 })
 
                 this.socket.on('users/online', (usersId) => {
                     this.updateOnlineUsers(usersId);
                 })
+
+                this.socket.on('isWriting', (user) => {
+                    this.writing = user.name+" is typing";
+                });
+                this.socket.on('isNotWriting', () => {
+                    this.writing = '';
+                });
 
 
 
